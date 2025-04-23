@@ -8,16 +8,12 @@ from shapely.geometry import LineString, Polygon, Point
 from shapely.errors import GEOSException
 import time
 
-# Import functions from other route modules
-# Assuming they are in the same directory
 from .metar import get_metar_summary
 from .pirep import get_pirep_summary
 from .sigmet import get_airsigmet_summary
 
-# Initialize geocoder (consider adding a unique user_agent)
 geolocator = Nominatim(user_agent="aviation-weather-app/1.0")
 
-# Simple cache for coordinates to avoid repeated lookups
 coordinate_cache = {}
 
 def get_coordinates(identifier):
@@ -26,14 +22,12 @@ def get_coordinates(identifier):
         return coordinate_cache[identifier]
 
     try:
-        # Add " airport" to potentially improve geocoding accuracy for ICAO codes
         location = geolocator.geocode(f"{identifier} airport", timeout=10)
         if location:
             coords = (location.latitude, location.longitude)
             coordinate_cache[identifier] = coords
             return coords
         else:
-            # Try without " airport" as fallback
             location = geolocator.geocode(identifier, timeout=10)
             if location:
                 coords = (location.latitude, location.longitude)
@@ -41,7 +35,7 @@ def get_coordinates(identifier):
                 return coords
             else:
                 print(f"Warning: Could not geocode identifier: {identifier}")
-                coordinate_cache[identifier] = None # Cache failure
+                coordinate_cache[identifier] = None 
                 return None
     except (GeocoderTimedOut, GeocoderServiceError) as e:
         print(f"Error geocoding {identifier}: {e}")
@@ -68,15 +62,12 @@ def parse_flight_plan(plan_string):
             raise ValueError(f"Invalid altitude '{parts[i+1]}' for waypoint {identifier}.")
 
         coords = get_coordinates(identifier)
-        # if coords is None:
-            # Optionally raise an error here if coordinates are essential
-            # print(f"Warning: Skipping waypoint {identifier} due to missing coordinates.")
-            # continue
+
 
         waypoints.append({
             "id": identifier,
             "alt_ft": altitude,
-            "coords": coords # Coords can be None if geocoding failed
+            "coords": coords 
         })
 
     if len(waypoints) < 2:
@@ -88,8 +79,7 @@ def check_sigmet_intersections(leg_start_coords, leg_end_coords, sigmets):
     """Checks if a flight leg intersects with any SIGMET polygons."""
     intersecting_sigmets = []
     if not leg_start_coords or not leg_end_coords:
-        return intersecting_sigmets # Cannot check intersection without coordinates
-
+        return intersecting_sigmets 
     try:
         # Shapely uses (lon, lat)
         flight_leg = LineString([
@@ -102,24 +92,18 @@ def check_sigmet_intersections(leg_start_coords, leg_end_coords, sigmets):
 
 
     for sigmet in sigmets:
-        # Ensure the sigmet has coordinate data in the expected format
-        # The aviationweather.gov API returns area geometry in sigmet['area']
+
         if not sigmet or 'area' not in sigmet or not isinstance(sigmet['area'], list):
             continue
-
-        # Extract coordinates - assuming format [{lat: y1, lon: x1}, {lat: y2, lon: x2}, ...]
-        # Sometimes it might be under a different key or structure, adjust as needed.
         sigmet_coords_list = sigmet['area']
         shapely_coords = [(point.get('lon'), point.get('lat')) for point in sigmet_coords_list if point.get('lon') is not None and point.get('lat') is not None]
 
         if len(shapely_coords) < 3:
-            # print(f"Warning: Insufficient valid coordinates for SIGMET polygon {sigmet.get('airSigmetId')}")
-            continue # Need at least 3 points for a polygon
+            continue 
 
         try:
             sigmet_polygon = Polygon(shapely_coords)
             if not sigmet_polygon.is_valid:
-                 # Attempt to buffer by 0 to fix potential self-intersection issues
                  sigmet_polygon = sigmet_polygon.buffer(0)
                  if not sigmet_polygon.is_valid:
                      print(f"Warning: Invalid SIGMET polygon geometry for {sigmet.get('airSigmetId')}, skipping intersection check.")
@@ -158,57 +142,47 @@ def get_flight_path_weather(plan_string):
         results["waypoints"] = waypoints
     except ValueError as e:
         results["errors"].append(f"Flight Plan Parsing Error: {e}")
-        return results # Cannot proceed without a valid plan
+        return results 
     except Exception as e:
          results["errors"].append(f"Unexpected Flight Plan Parsing Error: {e}")
          return results
 
     waypoint_ids = [wp["id"] for wp in waypoints]
 
-    # Fetch METAR data
     try:
-        # Create the altitudes dictionary needed by get_metar_summary
         altitudes_dict = {wp['id']: wp['alt_ft'] for wp in waypoints if wp.get('id') and wp.get('alt_ft') is not None}
-        # Pass the altitudes dictionary for VFR checks
         metar_data = get_metar_summary(waypoint_ids, altitudes_dict)
         results["metar"] = metar_data
-        # Check for errors in METAR data
         for wp_id, data in metar_data.items():
              if data.get("error"):
                  results["warnings"].append(f"METAR fetch/parse failed for {wp_id}: {data['error']}")
     except Exception as e:
         results["errors"].append(f"Failed to fetch METAR data: {e}")
 
-    # Fetch PIREP data
     try:
         pirep_data = get_pirep_summary(waypoint_ids)
         results["pireps"] = pirep_data
-         # Check for errors in PIREP data
         for wp_id, data in pirep_data.items():
              if data.get("error"):
                  results["warnings"].append(f"PIREP fetch/parse failed for {wp_id}: {data['error']}")
     except Exception as e:
         results["errors"].append(f"Failed to fetch PIREP data: {e}")
 
-    # Fetch AIRMET/SIGMET data (using max altitude for now)
-    # Consider refining this: maybe fetch for a range or per leg altitude
     try:
-        # Using max_altitude, fetch ALL hazards initially
         airsigmet_data = get_airsigmet_summary(max_altitude, hazard="ALL")
         if isinstance(airsigmet_data, list):
             results["airsigmets"] = airsigmet_data
         elif isinstance(airsigmet_data, dict) and 'error' in airsigmet_data:
             results["errors"].append(f"Failed to fetch AIRMET/SIGMET data: {airsigmet_data['error']}")
-            airsigmet_data = [] # Ensure it's a list for intersection check
+            airsigmet_data = [] 
         else:
              results["warnings"].append("Received unexpected format for AIRMET/SIGMET data.")
              airsigmet_data = []
 
     except Exception as e:
         results["errors"].append(f"Failed to fetch AIRMET/SIGMET data: {e}")
-        airsigmet_data = [] # Ensure it's a list
+        airsigmet_data = []
 
-    # Check intersections for each leg
     for i in range(len(waypoints) - 1):
         wp1 = waypoints[i]
         wp2 = waypoints[i+1]
@@ -228,28 +202,8 @@ def get_flight_path_weather(plan_string):
 
         results["legs"].append(leg_info)
 
-    # Add coordinate warnings if any waypoint failed geocoding
     for wp in waypoints:
         if wp["coords"] is None:
              results["warnings"].append(f"Could not determine coordinates for waypoint {wp['id']}. Some analysis may be incomplete.")
 
     return results
-
-# Example usage (within Flask context)
-# @app.route('/api/flight_path_weather', methods=['POST'])
-# def flight_path_weather_route():
-#     data = request.get_json()
-#     if not data or 'plan' not in data:
-#         return jsonify({"error": "Missing 'plan' in request body"}), 400
-#     plan_string = data['plan']
-#     weather_data = get_flight_path_weather(plan_string)
-#     return jsonify(weather_data)
-
-# Example for direct testing
-# if __name__ == '__main__':
-#      test_plan = "KDEN,10000,KORD,15000,KBOS,20000"
-#      # test_plan = "KSFO,5000,KLAX,10000" # Another example
-#      # test_plan = "KPHX,1500,KBXK,12000,KPSP,20000,KLAX,50" # README example
-#      print(f"Fetching weather for flight plan: {test_plan}")
-#      briefing = get_flight_path_weather(test_plan)
-#      print(json.dumps(briefing, indent=2, default=str)) 

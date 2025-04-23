@@ -3,17 +3,11 @@ import json
 from flask import jsonify
 import logging
 
-# Import the utility function
 from ..utils import get_utc_time_for_api
 
 logger = logging.getLogger(__name__)
 
-# Placeholder UTC function (replace with actual logic from UTC.py)
-# def get_current_utc_time_string(report_type="AirSigmet"):
-#     from datetime import datetime, timezone
-#     now_utc = datetime.now(timezone.utc)
-#     # Format might differ for Airsigmet API, adjust if needed
-#     return now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+
 
 def get_airsigmet_summary(altitude_ft, hazard="ALL"):
     """
@@ -33,23 +27,16 @@ def get_airsigmet_summary(altitude_ft, hazard="ALL"):
         print(f"Error: Invalid altitude provided: {altitude_ft}")
         return {"error": "Invalid altitude format. Must be an integer."}
 
-    # Use the imported utility function
     time_str = get_utc_time_for_api("Sigmet")
-    # Use 'level' parameter which expects altitude in hundreds of feet (Flight Level)
-    # The API seems sensitive to level, ensure it makes sense for the hazard type.
-    # For broad searches, maybe omit level or use a range if API supports.
-    # Sticking to single level as per original script for now.
+
     level_param = altitude_param // 100
 
-    # Allow filtering by hazard, default to ALL
     valid_hazards = ["CONV", "TURB", "ICE", "IFR", "MTN OBSCN", "ALL"]
     if hazard.upper() not in valid_hazards:
          print(f"Warning: Invalid hazard type '{hazard}'. Defaulting to 'ALL'.")
          hazard = "ALL"
 
-    # Using the time format from the utility function
     url = f"https://aviationweather.gov/api/data/airsigmet?format=json&level={level_param}&hazard={hazard.upper()}&date={time_str}"
-    # Consider adding hoursBefore/hoursAfter parameters for time window control.
 
     try:
         logger.info(f"Fetching AIRSIGMET: {url}")
@@ -57,8 +44,6 @@ def get_airsigmet_summary(altitude_ft, hazard="ALL"):
         response.raise_for_status()
         data = response.json()
         logger.info(f"Received {len(data)} AIRSIGMET reports from API.")
-        # The API returns a list of AIRMET/SIGMET objects directly
-        # Add a simplified summary to each report for convenience
         processed_data = []
         for report in data:
             try:
@@ -66,11 +51,10 @@ def get_airsigmet_summary(altitude_ft, hazard="ALL"):
                 processed_data.append(report)
             except Exception as e_gen:
                  logger.error(f"Error generating summary for AIRSIGMET {report.get('airSigmetId', 'N/A')}: {e_gen}", exc_info=True)
-                 # Optionally append report even if summary fails, or skip
-                 processed_data.append(report) # Keep report even if summary fails
+                 processed_data.append(report) 
 
         logger.info(f"Returning {len(processed_data)} processed AIRSIGMET reports.")
-        return processed_data # Return the list of report dictionaries
+        return processed_data
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error fetching AIRSIGMET data: {e}")
@@ -87,8 +71,6 @@ def generate_summary_string(report):
     try:
         hazard = report.get('hazard', 'Unknown Hazard')
         severity = report.get('severity', 'unknown severity')
-        # Use altitudeHi1 or altitudeLo1 depending on context or average them?
-        # altitudeHi1 might be null, handle that case.
         alt_hi = report.get('altitudeHi1')
         alt_lo = report.get('altitudeLo1')
 
@@ -99,7 +81,6 @@ def generate_summary_string(report):
         else:
             level_str = "at unknown altitude"
 
-        # Movement direction and speed might be None
         mov_dir = report.get('movementDir')
         mov_spd = report.get('movementSpd')
 
@@ -112,14 +93,3 @@ def generate_summary_string(report):
         print(f"Error generating summary string for report {report.get('airSigmetId', '')}: {e}")
         return "Error generating summary."
 
-# Example usage (optional, for testing)
-# if __name__ == '__main__':
-#     # Test with altitude 20000 feet, looking for any hazard
-#     altitude = 20000
-#     sigmets = get_airsigmet_summary(altitude)
-#     print(json.dumps(sigmets, indent=2))
-#
-#     # Test with specific hazard
-#     sigmets_conv = get_airsigmet_summary(altitude, hazard="CONV")
-#     print(f"\n--- Convective SIGMETs at FL{altitude//100} ---")
-#     print(json.dumps(sigmets_conv, indent=2)) 

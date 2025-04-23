@@ -19,46 +19,17 @@ export interface FooterConfig {
 
 export const footerConfig: FooterConfig = {
   brand: {
-    title: "NextJS Template",
-    description: "NextJS Template"
+    title: "Aviation Weather",
+    description: "Aviation Weather"
   },
   sections: [
     {
-      title: "Product",
+      title: "Weather Briefing",
       links: [
-        { href: "#", label: "Browser Extension" },
-        { href: "#", label: "Admin Dashboard" },
-        { href: "#", label: "AI Detection" },
-        { href: "#", label: "Pricing Plans" }
-      ]
-    },
-    {
-      title: "Solutions",
-      links: [
-        { href: "#", label: "Universities" },
-        { href: "#", label: "Schools" },
-        { href: "#", label: "Training Centers" },
-        { href: "#", label: "Enterprises" }
-      ]
-    },
-    {
-      title: "Resources",
-      links: [
-        { href: "#", label: "Documentation" },
-        { href: "#", label: "API Reference" },
-        { href: "#", label: "Help Center" },
-        { href: "#", label: "Security" }
-      ]
-    },
-    {
-      title: "Legal",
-      links: [
-        { href: "#", label: "Privacy Policy" },
-        { href: "#", label: "Terms of Service" },
-        { href: "#", label: "Cookie Policy" },
-        { href: "#", label: "GDPR" }
+        { href: "/briefing", label: "Weather Briefing" },
+        { href: "/map", label: "Weather Map" },
       ]
     }
   ],
-  copyright: `© ${new Date().getFullYear()} NextJS Template. All rights reserved.`
+  copyright: `© ${new Date().getFullYear()} Aviation Weather. All rights reserved.`
 }

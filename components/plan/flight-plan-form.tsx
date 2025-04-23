@@ -20,14 +20,12 @@ interface FlightPlanFormProps {
 
 const LOCAL_STORAGE_KEY = "flightPlanWaypoints";
 
-// Helper function to get initial state
 const getInitialWaypoints = (): Waypoint[] => {
-  if (typeof window !== 'undefined') { // Ensure localStorage is available
+  if (typeof window !== 'undefined') { 
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Basic validation: ensure it's an array of objects with correct keys
         if (Array.isArray(parsed) && parsed.length >= 2 && 
             parsed.every(item => typeof item === 'object' && 'airport' in item && 'altitude' in item)) {
           return parsed as Waypoint[];
@@ -37,15 +35,12 @@ const getInitialWaypoints = (): Waypoint[] => {
       }
     }
   }
-  // Default state if nothing valid in localStorage or SSR
   return [{ airport: "", altitude: "" }, { airport: "", altitude: "" }];
 };
 
 export function FlightPlanForm({ onPlanGenerated }: FlightPlanFormProps) {
-  // Initialize state using the helper function
   const [waypoints, setWaypoints] = React.useState<Waypoint[]>(getInitialWaypoints);
 
-  // Save waypoints to localStorage whenever they change
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(waypoints));

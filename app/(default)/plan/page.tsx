@@ -4,15 +4,28 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FlightPlanForm, Waypoint } from "@/components/plan/flight-plan-form"
 import { RoutePreview } from "@/components/plan/route-preview"
-import { GradientText } from "@/components/ui/gradient-text"
 import { PageHeader } from "@/components/ui/page-header"
 
 export default function FlightPlanPage() {
-  const [currentPlan, setCurrentPlan] = React.useState<Waypoint[] | null>(null);
+  const [planString, setPlanString] = React.useState<string | null>(null);
 
-  const handlePlanGenerated = (plan: Waypoint[]) => {
-    console.log("Plan generated in parent:", plan);
-    setCurrentPlan(plan);
+  const handlePlanGenerated = (newPlanString: string) => {
+    setPlanString(newPlanString);
+    
+    const waypoints = newPlanString.split(',').reduce<Waypoint[]>((acc, curr, i) => {
+      if (i % 2 === 0) {
+        acc.push({ airport: curr, altitude: '' });
+      } else if (acc.length > 0) {
+        acc[acc.length - 1].altitude = curr;
+      }
+      return acc;
+    }, []);
+
+    try {
+      localStorage.setItem('flightPlanWaypoints', JSON.stringify(waypoints));
+    } catch (error) {
+      console.error("Failed to save flight plan to localStorage:", error);
+    }
   };
 
   return (
@@ -34,7 +47,7 @@ export default function FlightPlanPage() {
             <CardTitle className="text-base">Route Preview</CardTitle>
           </CardHeader>
           <CardContent className="p-0 sm:p-4">
-            <RoutePreview plan={currentPlan} />
+            <RoutePreview plan={planString} />
           </CardContent>
         </Card>
       </div>

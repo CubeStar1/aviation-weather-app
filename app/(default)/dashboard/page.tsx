@@ -1,135 +1,209 @@
+'use client'
+
+import { useState, useEffect, FormEvent } from "react"
+import { useQuery } from "@tanstack/react-query"
+import Link from 'next/link'
+
+import { PageHeader } from "@/components/ui/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert as ShadcnAlert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
 import { AirportInfo } from "@/components/dashboard/airport-info"
-import { Alerts, AlertData } from "@/components/dashboard/alerts"
-import { WeatherStats, MetarTafData } from "@/components/dashboard/weather-stats"
+import { Alerts } from "@/components/dashboard/alerts"
+import { WeatherStats } from "@/components/dashboard/weather-stats"
 import { WeatherMap } from "@/components/dashboard/weather-map"
 import { TemperatureChart } from "@/components/dashboard/temperature-chart"
-import { FlightPlanning, RecentRoute } from "@/components/dashboard/flight-planning"
-import { WeatherSummary, WeatherSummaryData } from "@/components/dashboard/weather-summary"
-import { GradientText } from "@/components/ui/gradient-text"
-import { Particles } from "@/components/magicui/particles"
-import { Meteors } from "@/components/magicui/meteors"
-import { PageHeader } from "@/components/ui/page-header"
-// --- Mock API Data Structure ---
-interface AirportInfoData {
-  name: string;
-  icao: string;
-  runway: string;
-  elevation: string;
-  metar: string;
-  time: string;
-  status: string; 
-  flightConditions: string; 
-}
+import { FlightPlanning, Waypoint } from "@/components/dashboard/flight-planning"
+import { WeatherSummary } from "@/components/dashboard/weather-summary"
 
-// Combine all data for the dashboard
-interface DashboardData {
-  airportInfo: AirportInfoData;
-  weatherSummary: WeatherSummaryData;
-  weatherStats: MetarTafData;
-  recentRoutes: RecentRoute[];
-  alerts: AlertData[];
-  lastUpdatedUTC: string;
-}
+import { fetchDashboardWeather, DashboardWeatherData } from "@/lib/fetchers/dashboard"
+import { fetchFlightBriefing, BriefingApiResponse } from "@/lib/fetchers/briefing"
 
-// --- Mock API Response Object ---
-const mockDashboardData: DashboardData = {
-  lastUpdatedUTC: "17:53 UTC",
-  airportInfo: {
-    icao: "KPHX",
-    name: "Phoenix Sky Harbor Intl",
-    runway: "8/26",
-    elevation: "1135 ft",
-    metar: "KPHX 151753Z 27007KT 10SM FEW120 FEW200 32/09 A3005 RMK AO2 SLP140 T03170089",
-    time: "17:53 UTC",
-    status: "Active",
-    flightConditions: "VFR",
-  },
-  weatherSummary: {
-    temperature: 90, // Matches 32C roughly 
-    feelsLike: 94, // Added Feels Like temperature
-    condition: "Clear",
-    windSpeed: 7,
-    windGust: 15, // Added Wind Gust
-    windDirection: "W", // Matches 270° roughly
-    humidity: 25, // Correlates with 32C/9C Temp/Dew
-    pressure: 1017, // Correlates with 30.05 inHg
-    altimeterInHg: 30.05, // Added Altimeter inHg
-    visibility: 10,
-    dewPoint: 48, // Matches 9C roughly
-    ceiling: null, // Added Ceiling (null for none)
-    flightCategory: "VFR", // Added Flight Category
-    heatIndex: 89, // Added Heat Index
-    warnings: [ // Renamed from 'alert' to match component's internal name
-      { type: "info", text: "Optimal flying conditions" }
-    ],
-    hourlyForecast: [ // Added hourly forecast data
-       { time: "9AM", condition: "Clear", temp: 85 },
-       { time: "12PM", condition: "Clear", temp: 90 },
-       { time: "3PM", condition: "Clear", temp: 92 },
-       { time: "6PM", condition: "Clear", temp: 88 },
-       { time: "9PM", condition: "Clear", temp: 82 },
-    ]
-  },
-  weatherStats: {
-    metar: {
-      wind: { direction: "270°", speed: "7 KT" },
-      visibility: "10 SM",
-      ceiling: "FEW at 12,000 ft, FEW at 20,000 ft",
-      temperature: 32, // Component expects 'temperature', not 'temperatureC'
-      dewpoint: 9, // Component expects 'dewpoint', not 'dewpointC'
-      altimeter: "30.05 inHg", // Component expects 'altimeter', not 'altimeterInHg'
-      remarks: "AO2 SLP140 T03170089",
-      raw: "KPHX 151753Z 27007KT 10SM FEW120 FEW200 32/09 A3005 RMK AO2 SLP140 T03170089"
-    },
-    taf: {
-      valid: "151700Z 151800Z", 
-      forecast: [
-        { time: "18:00-21:00", wind: "280° at 8 KT", visibility: ">6 SM", clouds: "FEW120", conditions: "No significant weather" },
-        { time: "21:00-00:00", wind: "290° at 6 KT", visibility: ">6 SM", clouds: "FEW100 SCT200", conditions: "No significant weather" }
-      ],
-      raw: "KPHX 151700Z 1518/1618 27010KT P6SM FEW120 SCT200 FM152000 28008KT P6SM FEW100 SCT200"
-    }
-  },
-  recentRoutes: [
-    { id: 1, from: "KPHX", to: "KLAX", via: "KPSP", date: "Today" },
-    { id: 2, from: "KPHX", to: "KLAS", via: "KGCN", date: "Yesterday" },
-  ],
-  alerts: [
-     { id: "1", type: "INFO", message: "Optimal flying conditions reported.", time: "18:00 UTC", severity: "low" },
-     { id: "2", type: "WARNING", message: "Potential for afternoon thunderstorms.", time: "14:00 UTC", severity: "medium" },
-     { id: "3", type: "SIGMET", message: "SIGMET WHISKEY active for area XYZ.", time: "16:45 UTC", severity: "high" }
-  ]
-};
+import { AlertCircle } from "lucide-react"
+
+const DEFAULT_CITY = "London"
+const DEFAULT_ICAO = "EGLL"
 
 export default function DashboardPage() {
+  const [cityInput, setCityInput] = useState("")
+  const [icaoInput, setIcaoInput] = useState("")
+  const [locationQuery, setLocationQuery] = useState<string | null>(null)
+  const [currentPlanWaypoints, setCurrentPlanWaypoints] = useState<Waypoint[]>([])
+
+  useEffect(() => {
+    const savedCity = localStorage.getItem("userCity")
+    const savedIcao = localStorage.getItem("userIcao")
+    setCityInput(savedCity || DEFAULT_CITY)
+    setIcaoInput(savedIcao || DEFAULT_ICAO)
+    setLocationQuery(savedCity || DEFAULT_CITY)
+
+    try {
+      const savedPlanRaw = localStorage.getItem('flightPlanWaypoints')
+      if (savedPlanRaw) {
+        const parsedWaypoints = JSON.parse(savedPlanRaw)
+        if (Array.isArray(parsedWaypoints)) {
+          setCurrentPlanWaypoints(parsedWaypoints)
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load flightPlanWaypoints:", error)
+      setCurrentPlanWaypoints([])
+    }
+  }, [])
+
+  const { 
+    data: dashboardData, 
+    isLoading: isLoadingWeather,
+    isError: isWeatherError, 
+    error: weatherError 
+  } = useQuery<DashboardWeatherData, Error>({
+    queryKey: ['dashboardWeather', locationQuery],
+    queryFn: () => fetchDashboardWeather(locationQuery!),
+    enabled: !!locationQuery,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+
+  const { 
+    data: briefingData, 
+    isLoading: isLoadingBriefing
+  } = useQuery<BriefingApiResponse, Error>({
+    queryKey: ['flightBriefing', currentPlanWaypoints],
+    queryFn: () => {
+      const planString = currentPlanWaypoints
+        .map(wp => `${wp.airport},${wp.altitude}`)
+        .join(',');
+      return fetchFlightBriefing(planString);
+    },
+    enabled: currentPlanWaypoints.length > 0,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+
+  const handleLocationUpdate = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (cityInput) {
+      localStorage.setItem("userCity", cityInput)
+      localStorage.setItem("userIcao", icaoInput)
+      setLocationQuery(cityInput)
+    }
+  }
+
+  if (isLoadingWeather || locationQuery === null) {
+    return (
+      <div className="container mx-auto px-4 py-6 space-y-6 animate-pulse">
+        <PageHeader title="Dashboard" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+          <Skeleton className="h-[300px] lg:col-span-1 rounded-xl" /> 
+          <div className="lg:col-span-2 space-y-6 grid grid-rows-2">
+            <Skeleton className="h-[150px] rounded-xl" />
+            <Skeleton className="h-[150px] rounded-xl" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+          <Skeleton className="h-[200px] rounded-xl" />
+          <Skeleton className="h-[200px] rounded-xl" />
+          <Skeleton className="h-[200px] rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 gap-6">
+          <Skeleton className="h-[180px] rounded-xl" />
+        </div>
+      </div>
+    )
+  }
+
+  if (isWeatherError) {
+    return (
+      <div className="container mx-auto px-4 py-6 space-y-6 flex flex-col items-center">
+        <PageHeader title="Dashboard" />
+        <ShadcnAlert variant="destructive" className="w-full max-w-lg">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error Fetching Weather</AlertTitle>
+          <AlertDescription>
+            {weatherError?.message || "An unknown error occurred while fetching weather data."}
+          </AlertDescription>
+        </ShadcnAlert>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background  ">
+    <div className="min-h-screen bg-gradient-to-b from-background">
       <div className="container mx-auto px-4 py-6 space-y-6">
         <PageHeader title="Dashboard" />
         
+        <Card className="shadow-sm border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-background to-background rounded-xl overflow-hidden">
+          <CardHeader className="px-5 py-3 border-b border-amber-500/10">
+            <CardTitle className="text-base font-medium text-amber-800 dark:text-amber-300">Location</CardTitle>
+          </CardHeader>
+          <CardContent className="p-5">
+            <form onSubmit={handleLocationUpdate} className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1">
+                <Label htmlFor="cityInput" className="text-slate-500 dark:text-slate-400 text-xs">City</Label>
+                <Input 
+                  id="cityInput"
+                  type="text" 
+                  value={cityInput} 
+                  onChange={(e) => setCityInput(e.target.value)} 
+                  placeholder="Enter city name (e.g., London)"
+                  required 
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="icaoInput" className="text-slate-500 dark:text-slate-400 text-xs">ICAO (Optional)</Label>
+                <Input 
+                  id="icaoInput"
+                  type="text" 
+                  value={icaoInput} 
+                  onChange={(e) => setIcaoInput(e.target.value)} 
+                  placeholder="Enter airport ICAO (e.g., EGLL)" 
+                  maxLength={4}
+                />
+              </div>
+              <Button 
+                type="submit" 
+                variant="outline" 
+                className="border-amber-500/50 text-amber-700 hover:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/10"
+              >
+                Update Location
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           <div className="lg:col-span-1">
-            <WeatherSummary weatherData={mockDashboardData.weatherSummary} />
+            {dashboardData && <WeatherSummary weatherData={dashboardData} />}
           </div>
           <div className="lg:col-span-2 space-y-6 grid grid-rows-2">
-            <TemperatureChart />
-            <AirportInfo airportData={mockDashboardData.airportInfo} />
+            <TemperatureChart forecastData={dashboardData?.hourlyForecast} />
+            <AirportInfo airportData={{
+              icao: icaoInput,
+              name: dashboardData?.name || `Weather for ${locationQuery}`,
+              runway: "N/A",
+              elevation: "N/A",
+              metar: "N/A",
+              time: dashboardData?.lastUpdatedUTC || "N/A",
+              status: "N/A",
+              flightConditions: "N/A",
+            }} />
           </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-          <FlightPlanning recentRoutes={mockDashboardData.recentRoutes} />
+          <FlightPlanning currentPlanWaypoints={currentPlanWaypoints} />
           <WeatherMap />
-          <Alerts alerts={mockDashboardData.alerts} />
+          <Alerts briefing={briefingData} />
         </div>
         
         <div className="grid grid-cols-1 gap-6">
-          <WeatherStats statsData={mockDashboardData.weatherStats} />
+          <WeatherStats briefing={briefingData} />
         </div>
       </div>
-     
-
     </div>
   )
 } 

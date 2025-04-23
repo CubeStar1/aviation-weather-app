@@ -1,23 +1,23 @@
-"use client" // Add use client for state and form interaction
+"use client" 
 
 import * as React from "react"
-import { Card, CardContent } from "@/components/ui/card" // Removed CardHeader/Title as they aren't used directly
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs" // Removed TabsContent import
-import { Input } from "@/components/ui/input" // For search
-import { Button } from "@/components/ui/button" // For search
+import { Card, CardContent } from "@/components/ui/card" 
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs" 
+import { Input } from "@/components/ui/input" 
+import { Button } from "@/components/ui/button" 
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { FlightPlanForm, Waypoint } from "@/components/plan/flight-plan-form" // Import form and type
-import { Search, SlidersHorizontal, Map as MapIcon } from "lucide-react" // Renamed Map import
+import { FlightPlanForm, Waypoint } from "@/components/plan/flight-plan-form" 
+import { Search, SlidersHorizontal, Map as MapIcon, RefreshCw } from "lucide-react" 
 import { GradientText } from "@/components/ui/gradient-text"
 import { PageHeader } from "@/components/ui/page-header"
+import Link from "next/link"
 
 
-// --- Legend Data Structure ---
 interface LegendItem {
   label: string;
   colorClass: string;
-  type: 'dot' | 'border'; // Add type for different styles
+  type: 'dot' | 'border'; 
 }
 
 const mapLegendData: LegendItem[] = [
@@ -28,31 +28,74 @@ const mapLegendData: LegendItem[] = [
   { label: "Light Precip", colorClass: "bg-blue-400", type: 'dot' },
   { label: "Heavy Precip", colorClass: "bg-blue-800", type: 'dot' },
   { label: "Clouds", colorClass: "bg-gray-500", type: 'dot' },
-  { label: "SIGMET/AIRMET", colorClass: "border-amber-500", type: 'border' }, // Use border for this one
+  { label: "SIGMET/AIRMET", colorClass: "border-amber-500", type: 'border' }, 
 ];
 
-export default function MapPage() {
-  // State for the flight plan entered in the sidebar form
-  const [currentMapPlan, setCurrentMapPlan] = React.useState<Waypoint[] | null>(null);
+const mapUrls = {
+  radar: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=PRECIP_WATER",
+  satellite: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=SURFACE_ANALYSIS",
+  sigmet: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=CURRENT_FL050_WINDS_TEMP",
+  conditions: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=MEAN_RH"
+};
 
-  // Handler for the form
-  const handleMapPlanGenerated = (plan: Waypoint[]) => {
-    console.log("Map plan generated:", plan);
-    setCurrentMapPlan(plan);
-    // TODO: Update map display based on the new plan
+export default function MapPage() {
+  const [currentMapPlan, setCurrentMapPlan] = React.useState<Waypoint[] | null>(null);
+  const [cacheBuster, setCacheBuster] = React.useState<string>(`seed=${Date.now()}`);
+  const [selectedTab, setSelectedTab] = React.useState<keyof typeof mapUrls>('radar');
+
+  const refreshMap = () => {
+    setCacheBuster(`seed=${Date.now()}`);
+  };
+
+  const handleMapPlanGenerated = (planString: string) => {
+    console.log("Map plan string received:", planString);
+    try {
+      const parsedWaypoints = planString.split(',')
+        .map(part => {
+          const [airport, altitude] = part.split(','); 
+          return { airport: airport?.trim() ?? '', altitude: altitude?.trim() ?? '' };
+        })
+        .reduce<Waypoint[]>((acc, _, i, arr) => {
+          if (i % 2 === 0 && arr[i] && arr[i+1]) { 
+              return acc; 
+          }
+          return acc;
+        }, []);
+        
+      const parts = planString.split(',');
+      const waypoints: Waypoint[] = [];
+      for (let i = 0; i < parts.length; i += 2) {
+        if (parts[i] && parts[i+1]) { 
+            waypoints.push({ airport: parts[i].trim(), altitude: parts[i+1].trim() });
+        }
+      }
+
+      if (waypoints.length > 0) {
+        setCurrentMapPlan(waypoints);
+      } else {
+          console.error("Failed to parse plan string into waypoints:", planString);
+          setCurrentMapPlan(null); 
+      }
+    } catch (error) {
+      console.error("Error parsing flight plan string:", error);
+      setCurrentMapPlan(null);
+    }
   };
 
   return (
     <div className="container mx-auto px-4 py-4 space-y-4">
-      <PageHeader title="Weather Map" />
+      <div className="flex justify-between items-center">
+        <PageHeader title="Weather Map" />
+        <Link href="/maps">
+        <Button variant="outline">
+          <MapIcon className="h-4 w-4 mr-2" />
+           View Live Map
+          </Button>
+        </Link>
+      </div>
       
-      {/* Apply gradient and border to the main card */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background shadow-sm overflow-hidden"> 
-        {/* Remove CardHeader for now, integrate controls differently */}
-        {/* <CardHeader className="py-3">
-          ...
-        </CardHeader> */}
-        <CardContent className="p-0 flex flex-col md:flex-row h-[calc(100vh-12rem)]"> {/* Use Flex layout, full height */}
+        <CardContent className="p-0 flex flex-col md:flex-row h-[calc(100vh-12rem)]"> 
           
           {/* --- Sidebar --- */}
           <aside className="w-full md:w-1/3 border-r bg-background/50 p-4 flex flex-col">
@@ -72,7 +115,7 @@ export default function MapPage() {
 
                 <Separator />
 
-                {/* Flight Plan Section - Removed max-h/flex-grow override */}
+                {/* Flight Plan Section */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium text-muted-foreground">Input / Edit Route</h3>
                   <div> 
@@ -85,39 +128,50 @@ export default function MapPage() {
 
           {/* --- Main Map Area --- */}
           <main className="flex-1 flex flex-col p-4">
-            {/* Map Controls (Tabs) */}
-            <div className="mb-3">
-              <Tabs defaultValue="radar" className="w-full">
+            <div className="mb-3 flex justify-between items-center">
+              <Tabs 
+                defaultValue="radar" 
+                className="w-full"
+                value={selectedTab}
+                onValueChange={(value) => setSelectedTab(value as keyof typeof mapUrls)}
+              >
                 <TabsList className="grid grid-cols-4 w-full md:w-auto">
                   <TabsTrigger value="radar" className="text-xs px-3 py-1.5 h-auto">
-                    Radar
-                  </TabsTrigger>
-                  <TabsTrigger value="satellite" className="text-xs px-3 py-1.5 h-auto">
-                    Satellite
-                  </TabsTrigger>
-                  <TabsTrigger value="sigmet" className="text-xs px-3 py-1.5 h-auto">
                     SIGMET
                   </TabsTrigger>
+                  <TabsTrigger value="satellite" className="text-xs px-3 py-1.5 h-auto">
+                    Surface Analysis
+                  </TabsTrigger>
+                  <TabsTrigger value="sigmet" className="text-xs px-3 py-1.5 h-auto">
+                    Winds
+                  </TabsTrigger>
                   <TabsTrigger value="conditions" className="text-xs px-3 py-1.5 h-auto">
-                    Conditions
+                    Humidity
                   </TabsTrigger>
                 </TabsList>
-                {/* Tab content could potentially overlay info on the map itself */}
               </Tabs>
+              <Button variant="outline" size="sm" onClick={refreshMap} className="ml-2">
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
             </div>
             
-            {/* Map Placeholder */}
-            <div className="flex-grow bg-muted rounded-lg flex items-center justify-center border border-dashed">
-              <div className="text-center">
-                <MapIcon className="h-12 w-12 mx-auto mb-3 text-primary/50"/>
-                <p className="text-sm text-muted-foreground mb-1">Interactive weather map</p>
-                {currentMapPlan && (
-                  <p className="text-xs text-muted-foreground">Displaying route: {currentMapPlan.map(wp => wp.airport).join(' → ')}</p>
-                )}
-              </div>
+            {/* Map Display */}
+            <div className="flex-grow bg-muted rounded-lg border relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`${mapUrls[selectedTab]}&${cacheBuster}`}
+                alt={`Weather Map - ${selectedTab}`}
+                className="object-contain w-full h-full absolute inset-0"
+                loading="lazy"
+                style={{ objectFit: 'cover' }}
+              />
+              {currentMapPlan && (
+                <div className="absolute bottom-0 left-0 right-0 bg-background/80 p-2 text-xs text-center border-t">
+                  Route: {currentMapPlan.map(wp => wp.airport).join(' → ')}
+                </div>
+              )}
             </div>
             
-             {/* Legend - Mapped from data object */}
             <div className="mt-3 p-3 bg-background/50 border rounded-md">
               <h4 className="text-xs font-semibold mb-2 flex items-center">
                 <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5"/> Map Legend

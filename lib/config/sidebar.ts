@@ -3,7 +3,7 @@ import { SidebarConfig } from "@/components/global/app-sidebar";
 
 const sidebarConfig: SidebarConfig = {
   brand: {
-    title: "Next.js Template",
+    title: "Aviation Weather",
     icon: Icons.shield,
     href: "/"
   },
@@ -12,33 +12,33 @@ const sidebarConfig: SidebarConfig = {
       label: "Overview",
       items: [
         {
-          title: "Home",
-          href: "/",
+          title: "Weather Briefing",
+          href: "/briefing",
           icon: Icons.home
         },
         {
-          title: "Dashboard",
-          href: "/dashboard",
+          title: "Weather Map",
+          href: "/map",
           icon: Icons.layoutDashboard
         },
         {
-          title: "Activity",
-          href: "/activity",
+          title: "Flight Plan",
+          href: "/plan",
           icon: Icons.activity
         }
       ]
     },
     {
-        label: "Profile",
+        label: "Weather Briefing",
         items: [
           {
-            title: "Profile",
-            href: "/profile",
+            title: "Weather Briefing",
+            href: "/briefing",
             icon: Icons.user
           },
           {
-            title: "Settings",
-            href: "/settings",
+            title: "Weather Map",
+            href: "/map",
             icon: Icons.settings
           }
         ]

@@ -17,33 +17,12 @@ export interface HeaderConfig {
 
 export const headerConfig: HeaderConfig = {
   brand: {
-    title: "NextJS Template",
+    title: "Aviation Weather",
     icon: "/globe.svg"
   },
   navigationLinks: [
-    { 
-    href: "/", 
-    label: "Home" 
-  },
-  { 
-    href: "/about", 
-    label: "About" 
-  },
-  { 
-    href: "/activity", 
-    label: "Activity" 
-  },
-  { 
-    href: "/files", 
-    label: "Files" 
-  },
-  { 
-    href: "/settings", 
-    label: "Settings" 
-  },
-  { 
-    href: "/contact", 
-    label: "Contact" 
-  }
+    { href: "/briefing", label: "Weather Briefing" },
+    { href: "/map", label: "Weather Map" },
+    { href: "/plan", label: "Flight Plan" },
   ]
 }

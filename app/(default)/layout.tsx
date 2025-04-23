@@ -9,13 +9,14 @@ import { DotPattern } from "@/components/magicui/dot-pattern"
 
 const navItems = [
   {
-    label: "Dashboard",
-    href: "/dashboard",
-  },
-  {
     label: "Flight Plan",
     href: "/plan",
   },
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+  },
+
   {
     label: "Weather Map",
     href: "/map",

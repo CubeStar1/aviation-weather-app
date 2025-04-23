@@ -1,74 +1,147 @@
+import * as React from "react"
 import {
-    Card, CardContent, CardHeader, CardTitle
+    Card, CardContent, CardHeader, CardTitle, CardFooter
   } from "@/components/ui/card"
-  import {
-    Plane, Clock, MapPin, Layers, Waves, Snowflake, Cloud
-  } from "lucide-react"
-  
-  // Re-define necessary interface locally
-  interface PirepData {
-    raw: string;
-    time: string;
-    description: string;
-    location?: string;
-    altitude?: string;
-    aircraft?: string;
-    turbulence?: string;
-    icing?: string;
-    skyCondition?: string;
-  }
-  
-  // --- Helper Component (Moved from main page) ---
-  const InfoItem = ({ icon, label, value }: { icon: React.ElementType, label: string, value: React.ReactNode }) => {
-    if (!value) return null;
-    const Icon = icon;
-    return (
-      <div className="flex items-center text-xs">
-        <Icon className="h-3.5 w-3.5 mr-1.5 text-muted-foreground flex-shrink-0" />
-        <span className="text-muted-foreground mr-1">{label}:</span>
-        <span className="font-medium text-foreground text-right flex-1">{value}</span>
+import { Separator } from "@/components/ui/separator"
+import { 
+    MessageSquare, Clock, MapPin, Plane, Cloud, Snowflake, Waves, User, Eye, FileText, Info
+} from "lucide-react"
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
+import { ScrollArea } from "@/components/ui/scroll-area"
+
+import { BriefingApiResponse, PirepData, PirepReportData } from "@/lib/fetchers/briefing"
+
+interface PirepTabProps {
+  briefing: BriefingApiResponse;
+}
+
+const PirepInfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: React.ReactNode }) => {
+  if (value === null || value === undefined || value === '' || value === 'N/A') return null;
+  return (
+    <div className="flex items-start text-xs">
+      <Icon className="h-3.5 w-3.5 mr-1.5 text-muted-foreground flex-shrink-0 mt-px" />
+      <span className="text-muted-foreground mr-1 min-w-[65px]">{label}:</span>
+      <span className="font-medium text-foreground flex-1 break-words">{value}</span>
+    </div>
+  );
+};
+
+const PirepReport = ({ report }: { report: PirepReportData }) => {
+   if (report.raw === "No matching AIREP/PIREPs") {
+       return <p className="text-xs text-muted-foreground italic px-2">No specific PIREPs found matching criteria.</p>;
+   }
+
+   const location = report.location?.repr || "Unknown";
+   const time = report.time?.repr ? `${report.time.repr}Z` : "N/A";
+   const altitude = report.altitude?.value ? `FL${String(report.altitude.value).padStart(3, '0')}` : "N/A";
+   const aircraft = typeof report.aircraft === 'object' && report.aircraft?.code 
+                    ? `${report.aircraft.code} (${report.aircraft.type || 'Unknown Type'})` 
+                    : report.aircraft || "N/A";
+   const clouds = report.clouds?.map((c: any) => `${c.type}${c.base ? `@${c.base * 100}ft` : ''}`).join(', ') || "N/A";
+   const icing = report.icing?.repr || "N/A";
+   const turbulence = report.turbulence?.repr || "N/A";
+   const visibility = report.flight_visibility?.repr ? `${report.flight_visibility.repr} SM` : "N/A";
+   const remarks = report.remarks || "N/A";
+   const reportType = report.type || "PIREP";
+
+   return (
+      <div className="space-y-2">
+         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+            <PirepInfoItem icon={Clock} label="Time" value={time} />
+            <PirepInfoItem icon={MapPin} label="Location" value={location} />
+            <PirepInfoItem icon={Plane} label="Altitude" value={altitude} />
+            <PirepInfoItem icon={User} label="Aircraft" value={aircraft} />
+            <PirepInfoItem icon={Cloud} label="Clouds" value={clouds} />
+            <PirepInfoItem icon={Eye} label="Visibility" value={visibility} />
+            <PirepInfoItem icon={Snowflake} label="Icing" value={icing} />
+            <PirepInfoItem icon={Waves} label="Turbulence" value={turbulence} />
+             <PirepInfoItem icon={FileText} label="Type" value={reportType} />
+            {remarks !== 'N/A' && (
+                <div className="sm:col-span-2">
+                    <PirepInfoItem icon={MessageSquare} label="Remarks" value={remarks} />
+                </div>
+            )}
+         </div>
+          {report.raw && report.raw !== "No matching AIREP/PIREPs" && (
+            <Accordion type="single" collapsible className="w-full pt-1">
+                 <AccordionItem value="raw-pirep" className="border-t">
+                     <AccordionTrigger className="text-xs font-medium py-1 hover:no-underline text-muted-foreground">
+                          <span className="flex items-center"><Info className="h-3.5 w-3.5 mr-1.5"/> Raw Text</span>
+                     </AccordionTrigger>
+                     <AccordionContent className="pt-1 pb-0">
+                         <pre className="bg-muted/50 p-1.5 rounded font-mono text-[10px] overflow-x-auto whitespace-pre-wrap break-words">
+                             {report.raw}
+                         </pre>
+                     </AccordionContent>
+                 </AccordionItem>
+             </Accordion>
+          )}
       </div>
-    );
-  };
-  
-  // --- Props definition for PirepTab ---
-  interface PirepTabProps {
-    pireps: PirepData[];
+   );
+}
+
+export function PirepTab({ briefing }: PirepTabProps) {
+  const pirepsData = briefing.pireps;
+  const waypointIds = Object.keys(pirepsData || {});
+
+  if (!pirepsData || waypointIds.length === 0) {
+    return <p className="text-sm text-muted-foreground p-4">No PIREPs found near the route waypoints.</p>;
   }
-  
-  export function PirepTab({ pireps }: PirepTabProps) {
-    return (
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold tracking-tight">Pilot Reports (PIREPs)</h2>
-        {pireps.length > 0 ? pireps.map((pirep, index) => (
-           <Card key={index} className="border shadow-sm bg-background">
-             <CardHeader className="pb-2 pt-3 flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-base font-semibold flex items-center">
-                  <Plane className="h-4 w-4 mr-1.5 text-muted-foreground" /> PIREP
+
+  return (
+    <ScrollArea style={{ height: 'calc(100vh - 22rem)' }} className="pr-4">
+        <div className="space-y-4">
+        {waypointIds.map(waypointId => {
+          const pirepGroup = pirepsData[waypointId];
+          const noReportsFound = pirepGroup?.reports?.[0]?.raw === "No matching AIREP/PIREPs";
+          
+          if (!pirepGroup || !pirepGroup.reports || (pirepGroup.reports.length === 1 && noReportsFound)) {
+              return (
+                   <Card key={waypointId} className="border shadow-sm bg-background/50 border-dashed">
+                      <CardHeader className="pb-2 pt-3">
+                        <CardTitle className="text-sm font-semibold flex items-center text-muted-foreground">
+                           <MessageSquare className="h-4 w-4 mr-1.5 text-muted-foreground/70"/> 
+                           PIREPs near {waypointId}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0 pb-3">
+                           <p className="text-xs text-muted-foreground italic">No specific reports found near this waypoint.</p>
+                      </CardContent>
+                      {pirepGroup?.status && (
+                           <CardFooter className="text-xs text-muted-foreground/80 pt-2 pb-2 border-t bg-muted/30">
+                              {pirepGroup.status}
+                          </CardFooter>
+                      )}
+                   </Card>
+              );
+          }
+
+          return (
+            <Card key={waypointId} className="border shadow-sm bg-background">
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="text-sm font-semibold flex items-center">
+                   <MessageSquare className="h-4 w-4 mr-1.5 text-blue-500"/> 
+                   PIREPs near {waypointId}
+                   <span className="ml-2 text-xs font-normal text-muted-foreground">({pirepGroup.reports.length} report{pirepGroup.reports.length !== 1 ? 's' : ''})</span>
                 </CardTitle>
-                <span className="text-xs text-muted-foreground"><Clock className="inline h-3 w-3 mr-0.5" />{pirep.time}</span>
-             </CardHeader>
-             <CardContent className="pt-0 text-sm space-y-2">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1 text-xs">
-                   <InfoItem icon={MapPin} label="Location" value={pirep.location} />
-                   <InfoItem icon={Layers} label="Altitude" value={pirep.altitude} />
-                   <InfoItem icon={Plane} label="Aircraft" value={pirep.aircraft} />
-                   {pirep.turbulence && <InfoItem icon={Waves} label="Turbulence" value={pirep.turbulence} />}
-                   {pirep.icing && <InfoItem icon={Snowflake} label="Icing" value={pirep.icing} />}
-                   {pirep.skyCondition && <InfoItem icon={Cloud} label="Sky" value={pirep.skyCondition} />}
-                </div>
-                <div className="text-xs pt-1"> 
-                   <span className="text-muted-foreground mr-1">Report:</span>
-                   <span className="font-medium text-foreground">{pirep.description}</span>
-                </div>
-                <details className="pt-1">
-                    <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">Raw PIREP</summary>
-                    <p className="mt-1 bg-muted/50 p-2 rounded font-mono text-[11px] overflow-x-auto">{pirep.raw}</p>
-                </details>
-             </CardContent>
-           </Card>
-        )) : <p className="text-sm text-muted-foreground italic">No relevant PIREPs found for this route.</p>}
-      </div>
-    );
-  }
+              </CardHeader>
+              <CardContent className="pt-0 pb-3 space-y-3 divide-y">
+                {pirepGroup.reports.map((report, index) => (
+                   <div key={index} className="pt-3 first:pt-0">
+                      <PirepReport report={report} />
+                   </div>
+                ))}
+              </CardContent>
+               {pirepGroup.status && (
+                  <CardFooter className="text-xs text-muted-foreground/80 pt-2 pb-2 border-t bg-muted/30">
+                      {pirepGroup.status}
+                  </CardFooter>
+              )}
+            </Card>
+          );
+        })}
+        </div>
+    </ScrollArea>
+  );
+}
   

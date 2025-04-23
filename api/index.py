@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS # Import CORS
 
 # Import functions from the routes modules
 # Using absolute import from the 'api' package perspective
@@ -9,16 +10,25 @@ try:
     from api.routes.pirep import get_pirep_summary
     from api.routes.sigmet import get_airsigmet_summary
     from api.routes.flight_path import get_flight_path_weather
+    from api.routes.dashboard import get_basic_weather_data
+    from api.routes.ai_summary import configure_gemini, generate_weather_summary
 except ImportError:
-
     print("Attempting relative imports for routes...")
     from routes.metar import get_metar_summary
     from routes.pirep import get_pirep_summary
     from routes.sigmet import get_airsigmet_summary
     from routes.flight_path import get_flight_path_weather
+    from routes.dashboard import get_basic_weather_data
+    from routes.ai_summary import configure_gemini, generate_weather_summary
+
+import os
 
 app = Flask(__name__)
+CORS(app) 
 
+GEMINI_API_KEY = "AIzaSyAoiHl2F6SMyinRe6pwrBbBl-6L22pexe0"
+if GEMINI_API_KEY:
+    configure_gemini(GEMINI_API_KEY)
 
 @app.route("/api/metar", methods=['POST'])
 def metar_route():
@@ -28,25 +38,14 @@ def metar_route():
         return jsonify({"error": "Invalid request. Body must be JSON with an 'ids' list."}), 400
     
     airport_ids = data['ids']
-    # Get optional altitudes dictionary
     altitudes = data.get('altitudes') 
     
-    # Optional: Add validation for altitudes if present
     if altitudes is not None:
         if not isinstance(altitudes, dict):
              return jsonify({"error": "Invalid request. 'altitudes' must be an object/dictionary."}), 400
-        # Further validation could check if keys are in ids and values are numbers
-        # for airport_id, alt in altitudes.items():
-        #     if airport_id not in airport_ids:
-        #         # Handle mismatch or ignore?
-        #         pass 
-        #     try:
-        #         int(alt)
-        #     except (ValueError, TypeError):
-        #          return jsonify({"error": f"Invalid altitude '{alt}' for {airport_id}. Must be integer."}), 400
+        
 
     try:
-        # Pass altitudes dictionary to the summary function
         metar_data = get_metar_summary(airport_ids, altitudes)
         return jsonify(metar_data)
     except Exception as e:
@@ -63,7 +62,6 @@ def pirep_route():
     location_ids = data['ids']
     try:
         pirep_data = get_pirep_summary(location_ids)
-        # Use default=str for potential non-serializable types from avwx within PIREP data
         return jsonify(pirep_data)
     except Exception as e:
         print(f"Error in /api/pirep route: {e}")
@@ -79,7 +77,6 @@ def airsigmet_route():
         return jsonify({"error": "Missing required query parameter: altitude (in feet)"}), 400
 
     try:
-        # Validate altitude format within the route handler too
         altitude_ft = int(altitude)
     except ValueError:
          return jsonify({"error": "Invalid altitude format. Must be an integer."}), 400
@@ -105,24 +102,43 @@ def flight_briefing_route():
     try:
         briefing_data = get_flight_path_weather(plan_string)
         
-        # Check if the core function caught parsing/validation errors
         if briefing_data.get("errors"):
-            # Return 400 if errors occurred during parsing/setup phase
             return jsonify(briefing_data), 400
             
-        # Use default=str for potential non-serializable types if successful
         return jsonify(briefing_data)
         
     except Exception as e:
-        # Catch broader unexpected errors during the whole process
         print(f"Error in /api/flight_briefing route: {e}")
         return jsonify({"error": "An internal error occurred processing flight briefing request."}), 500
 
-# Add a simple root route for testing if the server is up
+@app.route("/api/weather_summary", methods=['POST'])
+def weather_summary_route():
+    """Endpoint to get an AI-generated weather summary for a flight briefing."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid request. Body must be JSON with briefing data."}), 400
+
+    try:
+        if not GEMINI_API_KEY:
+            return jsonify({"error": "AI summary not available - Gemini API key not configured"}), 503
+            
+        ai_summary = generate_weather_summary(data)
+        return jsonify({"summary": ai_summary})
+        
+    except Exception as e:
+        print(f"Error in /api/weather_summary route: {e}")
+        return jsonify({"error": "An internal error occurred generating weather summary."}), 500
+
+@app.route('/api/basic_weather/<string:query>', methods=['GET'])
+def basic_weather_route(query):
+    """Endpoint to get basic weather summary for a location query."""
+    try:
+        weather_data, status_code = get_basic_weather_data(query)
+        return jsonify(weather_data), status_code
+    except Exception as e:
+        print(f"Error in /api/basic_weather route: {e}") 
+        return jsonify({"error": "An internal server error occurred."}), 500
+
 @app.route("/")
 def index():
     return jsonify({"message": "Aviation Weather API is running."}) 
-
-# Optional: Add for running directly (python api/index.py) for development
-# if __name__ == '__main__':
-#     app.run(debug=True) # Turn off debug in production

@@ -1,36 +1,38 @@
-import {
-  ArrowRight,
-  PlaneTakeoff,
-  PlaneLanding
-} from "lucide-react"
+import * as React from "react"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { MapPin, PlaneTakeoff, ArrowRight } from "lucide-react"
+
+import { BriefingApiResponse } from "@/lib/fetchers/briefing"
 
 interface FlightRouteHeaderProps {
-  routeString: string;
+  briefing: BriefingApiResponse;
 }
 
-export function FlightRouteHeader({ routeString }: FlightRouteHeaderProps) {
-  const renderRoute = (routeStr: string) => {
-    const parts = routeStr.split(" → ");
-    return parts.map((part, index) => (
-      <div key={index} className="flex items-center group">
-        {index === 0 && <PlaneTakeoff className="h-5 w-5 mr-2 opacity-80 group-hover:opacity-100 transition-opacity" />}
-        <span className="font-semibold text-base px-1.5 py-0.5 rounded bg-white/30 dark:bg-black/20 group-hover:bg-white/50 dark:group-hover:bg-black/30 transition-colors scale-100 group-hover:scale-105 transform duration-150 ease-in-out">
-          {part}
-        </span>
-        {index < parts.length - 1 && (
-          <ArrowRight className="h-5 w-5 text-sky-700/70 dark:text-sky-300/70 mx-1 group-hover:text-sky-600 dark:group-hover:text-sky-200 transition-colors scale-100 group-hover:scale-110 transform duration-150 ease-in-out" />
-        )}
-        {index === parts.length - 1 && <PlaneLanding className="h-5 w-5 ml-2 opacity-80 group-hover:opacity-100 transition-opacity" />}
-      </div>
-    ));
+export function FlightRouteHeader({ briefing }: FlightRouteHeaderProps) {
+  
+  const getSimplifiedRoute = () => {
+    if (!briefing.waypoints || briefing.waypoints.length < 2) {
+      return briefing.flight_plan || "Invalid Route";
+    }
+    const departure = briefing.waypoints[0].id;
+    const arrival = briefing.waypoints[briefing.waypoints.length - 1].id;
+    return `${departure} → ${arrival}`;
   };
-
+  
   return (
-    <div className="bg-gradient-to-r from-sky-100 to-blue-100 dark:from-sky-900/50 dark:to-blue-900/50 p-4 rounded-lg shadow-sm border border-sky-200/50 dark:border-sky-800/50 mb-6">
-      <div className="flex items-center gap-2 flex-wrap text-sky-900 dark:text-sky-200">
-        <span className="font-medium text-sm mr-1">Flight Route:</span>
-        {renderRoute(routeString)}
-      </div>
-    </div>
-  );
+    <Card className="shadow-sm border-primary/10 bg-gradient-to-r from-primary/5 via-background to-background">
+      <CardContent className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight flex items-center">
+             <PlaneTakeoff className="h-5 w-5 mr-2 text-primary"/> 
+             Flight Route
+          </h2>
+           <p className="text-sm text-muted-foreground" title={briefing.flight_plan}>
+             {getSimplifiedRoute()}
+           </p>
+        </div>
+      </CardContent>
+    </Card>
+  )
 } 

@@ -8,7 +8,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { MountainSnow, CloudSun } from "lucide-react"
 import { BriefingApiResponse } from "@/lib/fetchers/briefing"
 
-// Helper function (can be moved to utils if used elsewhere)
 const getConditionBadgeClass = (condition?: string | null) => {
   switch (condition?.toUpperCase()) {
     case "VFR": return "border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400";
@@ -26,14 +25,13 @@ interface WaypointListProps {
 
 export function WaypointList({ waypoints, metarData }: WaypointListProps) {
   
-  // Map waypoints to include their METAR data for easier rendering
   const waypointsWithMetar = waypoints.map(wp => ({
     ...wp,
     metar: metarData[wp.id] || { raw: "METAR data not available", error: "Not found" } // Add default/error handling
   }));
 
   return (
-    <ScrollArea className="h-full pr-3">
+    <ScrollArea className="h-[calc(100vh-23rem)] pr-3">
         <div className="space-y-3">
         {waypointsWithMetar.map((waypoint, index) => (
             <Card key={waypoint.id || index} className="border shadow-sm overflow-hidden">
@@ -47,20 +45,16 @@ export function WaypointList({ waypoints, metarData }: WaypointListProps) {
                     </Avatar>
                     <div>
                     <h3 className="font-semibold text-sm leading-tight">{waypoint.id}</h3>
-                    {/* Use station_name from METAR data */} 
                     <p className="text-xs text-muted-foreground leading-tight truncate w-40 sm:w-auto" title={waypoint.metar?.station_name || waypoint.id}>
                         {waypoint.metar?.station_name || waypoint.id}
                     </p>
                     </div>
                 </div>
-                 {/* Use vfr_allowed for conditions badge */}
                  {waypoint.metar && !waypoint.metar.error && waypoint.metar.vfr_allowed !== null && (
                     <Badge variant="outline" className={`text-xs px-2 py-0.5 font-medium ${getConditionBadgeClass(waypoint.metar.vfr_allowed ? 'VFR' : 'Non-VFR')}`}> 
-                         {/* Displaying VFR/Non-VFR based on boolean. Could use flight_category if re-added */} 
                         {waypoint.metar.vfr_allowed ? "VFR Allowed" : "VFR Restricted"}
                     </Badge>
                  )}
-                 {/* Optional: Show badge for METAR error? */}
                  {waypoint.metar?.error && (
                      <Badge variant="destructive" className="text-xs px-2 py-0.5 font-medium">
                          METAR Error
@@ -78,10 +72,9 @@ export function WaypointList({ waypoints, metarData }: WaypointListProps) {
                 </div>
                 <div className="flex items-center">
                     <CloudSun className="h-3.5 w-3.5 mr-1.5 text-muted-foreground flex-shrink-0" />
-                    <div>
+                    <div className="min-w-0">
                         <p className="text-muted-foreground">Clouds</p>
-                        {/* Display cloud info from METAR */} 
-                        <p className="font-medium truncate" title={waypoint.metar?.cloud || "N/A"}>
+                        <p className="font-medium" title={waypoint.metar?.cloud || "N/A"}>
                             {waypoint.metar?.cloud || "N/A"}
                         </p>
                     </div>
@@ -90,8 +83,7 @@ export function WaypointList({ waypoints, metarData }: WaypointListProps) {
                 
                 <div>
                 <p className="text-xs text-muted-foreground mb-0.5">METAR</p>
-                <p className="text-[11px] font-mono bg-muted/50 p-1.5 rounded leading-snug">
-                    {/* Display raw METAR */} 
+                <p className="text-[11px] font-mono bg-muted/50 p-1.5 rounded leading-snug break-words">
                     {waypoint.metar?.raw || "N/A"}
                 </p>
                 </div>

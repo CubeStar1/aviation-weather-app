@@ -2,100 +2,122 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { Info, AlertTriangle, ExternalLink } from "lucide-react"
-
-// Define the structure for the data this component expects
-export interface AlertData {
-  id: string | number;
-  type: string; // e.g., "INFO", "WARNING", "SIGMET", "AIRMET"
-  message: string;
-  time: string;
-  severity: "low" | "medium" | "high" | string; // Allow known severities or others
-}
+import { Badge } from "@/components/ui/badge"
+import { AlertTriangle, Clock, MapPin, TrendingUp, Move } from "lucide-react"
+import { BriefingApiResponse } from "@/lib/fetchers/briefing"
 
 interface AlertsProps {
-  alerts: AlertData[];
+  briefing?: BriefingApiResponse;
 }
 
-// Helper to get styling based on alert type/severity
-const getAlertStyle = (
-  type: string,
-  severity: string
-): { icon: React.ElementType; colorClasses: string; borderClasses: string } => {
-  const lowerType = type.toLowerCase();
-  const lowerSeverity = severity.toLowerCase();
+// Helper functions from sigmet-airmet-tab.tsx
+const formatAltitude = (alt: number | null | undefined): string => {
+  if (alt === null || alt === undefined) return "N/A";
+  return alt === 0 ? "SFC" : `FL${(alt / 100).toFixed(0).padStart(3, '0')}`;
+};
 
-  if (lowerType === "sigmet" || lowerSeverity === "high") {
-    return {
-      icon: AlertTriangle,
-      colorClasses: "text-red-700 dark:text-red-400 bg-red-500/5",
-      borderClasses: "border-red-500/60",
-    };
-  } else if (lowerType === "warning" || lowerSeverity === "medium") {
-    return {
-      icon: AlertTriangle,
-      colorClasses: "text-amber-700 dark:text-amber-400 bg-amber-500/5",
-      borderClasses: "border-amber-500/60",
-    };
-  } else if (lowerType === "airmet") {
-    return {
-      icon: Info,
-      colorClasses: "text-blue-700 dark:text-blue-400 bg-blue-500/5",
-      borderClasses: "border-blue-500/60",
-    };
-  } else {
-    // INFO or low severity
-    return {
-      icon: Info,
-      colorClasses: "text-sky-700 dark:text-sky-400 bg-sky-500/5",
-      borderClasses: "border-sky-500/60",
-    };
+const formatMovement = (dir: number | null | undefined, spd: number | null | undefined): string => {
+  if (dir === null || dir === undefined || spd === null || spd === undefined || spd === 0) return "Stationary";
+  return `${dir}° at ${spd}kt`;
+};
+
+const formatTimestamp = (unixTimestamp: number | null | undefined): string => {
+  if (!unixTimestamp) return "N/A";
+  try {
+    return new Date(unixTimestamp * 1000).toLocaleString(undefined, {
+      hour: '2-digit', minute: '2-digit', timeZoneName: 'short' 
+    });
+  } catch (e) {
+    return "Invalid Date";
   }
 };
 
-export function Alerts({ alerts }: AlertsProps) {
+const getHazardColor = (hazardType?: string) => {
+  return hazardType === 'SIGMET' ? 'text-red-600 dark:text-red-500' : 'text-amber-600 dark:text-amber-500';
+};
+
+export function Alerts({ briefing }: AlertsProps) {
+  if (!briefing?.airsigmets || briefing.airsigmets.length === 0) {
+    return (
+      <Card className="max-h-[300px] shadow-sm border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-background to-background rounded-xl overflow-hidden">
+        <CardHeader className="px-5 py-3 border-b border-amber-500/10">
+          <CardTitle className="text-base font-medium text-amber-800 dark:text-amber-300">Active Alerts</CardTitle>
+        </CardHeader>
+        <CardContent className="p-5 text-center text-muted-foreground">
+          <AlertTriangle className="h-10 w-10 mx-auto mb-2 text-amber-400"/>
+          <p>No active alerts for this area.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Sort alerts by type (SIGMETs first) and then by time
+  const sortedAlerts = [...briefing.airsigmets].sort((a, b) => {
+    if (a.airSigmetType === b.airSigmetType) {
+      return (a.validTimeFrom || 0) - (b.validTimeFrom || 0);
+    }
+    return a.airSigmetType === 'SIGMET' ? -1 : 1;
+  });
+
   return (
-    <Card className="h-full shadow-sm border-red-500/20 bg-gradient-to-br from-red-500/5 via-background to-background rounded-xl overflow-hidden flex flex-col">
-      <CardHeader className="px-5 py-3 border-b border-red-500/10">
-        <CardTitle className="text-base font-medium text-red-800 dark:text-red-300">Weather Alerts</CardTitle>
+    <Card className="max-h-[400px] shadow-sm border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-background to-background rounded-xl overflow-hidden">
+      <CardHeader className="px-5 py-3 border-b border-amber-500/10">
+        <CardTitle className="text-base font-medium text-amber-800 dark:text-amber-300">
+          Active Alerts ({sortedAlerts.length})
+        </CardTitle>
       </CardHeader>
-      <CardContent className="p-0 flex-grow overflow-hidden"> {/* Remove padding, allow ScrollArea to handle */}
-        {alerts.length > 0 ? (
-          <ScrollArea className="h-full p-5"> {/* Set height, add padding here */}
-            <div className="space-y-3">
-              {alerts.map((alert) => {
-                const { icon: Icon, colorClasses, borderClasses } = getAlertStyle(alert.type, alert.severity);
-                return (
-                  <div key={alert.id} className={`flex items-start gap-3 p-3 rounded-md border-l-4 ${borderClasses} ${colorClasses}`}>
-                    <Icon className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                    <div className="flex-grow">
-                      <p className="text-sm font-medium leading-snug">{alert.message}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{alert.time} - {alert.type}</p>
-                    </div>
-                  </div>
-                );
-              })}
+      <ScrollArea className="h-[calc(100%-4rem)]">
+        <CardContent className="p-4 space-y-3">
+          {sortedAlerts.map((alert) => (
+            <div
+              key={alert.airSigmetId}
+              className={`p-3 rounded-lg border ${
+                alert.airSigmetType === 'SIGMET' 
+                  ? 'bg-red-500/5 border-red-500/20' 
+                  : 'bg-amber-500/5 border-amber-500/20'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className={`h-4 w-4 ${getHazardColor(alert.airSigmetType)}`} />
+                  <span className="text-sm font-medium">
+                    {alert.airSigmetType} {alert.alphaChar && `- ${alert.alphaChar}`}
+                  </span>
+                </div>
+                <Badge 
+                  variant="outline" 
+                  className={`text-xs ${
+                    alert.airSigmetType === 'SIGMET' 
+                      ? 'border-red-500/30 text-red-700 dark:text-red-400' 
+                      : 'border-amber-500/30 text-amber-700 dark:text-amber-400'
+                  }`}
+                >
+                  {alert.hazard}
+                </Badge>
+              </div>
+              
+              {alert.simplified_summary && (
+                <p className="text-xs text-foreground mb-2">{alert.simplified_summary}</p>
+              )}
+              
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center text-muted-foreground">
+                  <Clock className="h-3 w-3 mr-1" />
+                  Valid: {formatTimestamp(alert.validTimeFrom)}
+                </div>
+                <div className="flex items-center text-muted-foreground">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  {formatAltitude(alert.altitudeLow1)} - {formatAltitude(alert.altitudeHi1)}
+                </div>
+                <div className="flex items-center text-muted-foreground col-span-2">
+                  <Move className="h-3 w-3 mr-1" />
+                  {formatMovement(alert.movementDir, alert.movementSpd)}
+                </div>
+              </div>
             </div>
-          </ScrollArea>
-        ) : (
-          <div className="h-full flex items-center justify-center p-5">
-            <p className="text-sm text-muted-foreground italic">No current weather alerts.</p>
-          </div>
-        )}
-      </CardContent>
-      {/* Link to Full Alerts Page (Optional) */}
-      {alerts.length > 0 && (
-         <div className="p-3 border-t border-red-500/10 mt-auto bg-background/30">
-          <Button asChild size="sm" variant="outline" className="w-full h-8 text-xs border-red-500/30 text-red-700 dark:text-red-300 hover:bg-red-500/10 hover:text-red-800 dark:hover:text-red-200">
-            {/* TODO: Create an alerts page if needed */}
-            <Link href="#">
-               View All Alerts <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
-            </Link>
-          </Button>
-        </div>
-      )}
+          ))}
+        </CardContent>
+      </ScrollArea>
     </Card>
   );
 } 
