@@ -48,7 +48,8 @@ const api = axios.create({
 
 // Function to fetch AI summary
 const fetchAiSummary = async (briefing: BriefingApiResponse) => {
-  const { data } = await api.post('/api/weather_summary', briefing);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const { data } = await api.post(`${API_BASE_URL}/weather_summary`, briefing);
   return data.summary;
 };
 

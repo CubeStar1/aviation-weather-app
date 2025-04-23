@@ -69,7 +69,7 @@ export interface BriefingApiResponse {
 
  
 
-const API_BASE_URL = '/api'; 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const fetchFlightBriefing = async (planString: string | null): Promise<BriefingApiResponse> => {
   if (!planString) {
@@ -79,7 +79,7 @@ export const fetchFlightBriefing = async (planString: string | null): Promise<Br
 
   try {
     const response = await axios.post<BriefingApiResponse>(
-      `/api/flight_briefing`,
+      `${API_BASE_URL}/flight_briefing`,
       { plan: planString } 
     );
     return response.data; 

@@ -26,7 +26,7 @@ export interface DashboardWeatherData {
   errors?: string[]; 
 }
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const fetchDashboardWeather = async (locationQuery: string): Promise<DashboardWeatherData> => {
   if (!locationQuery) {
@@ -36,7 +36,7 @@ export const fetchDashboardWeather = async (locationQuery: string): Promise<Dash
   try {
     const encodedQuery = encodeURIComponent(locationQuery);
     const response = await axios.get<DashboardWeatherData>(
-      `/api/basic_weather/${encodedQuery}`
+      `${API_BASE_URL}/basic_weather/${encodedQuery}`
     );
     
     if (response.data.errors && response.data.errors.length > 0) {
