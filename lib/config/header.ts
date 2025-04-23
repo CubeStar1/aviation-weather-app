@@ -18,11 +18,9 @@ export interface HeaderConfig {
 export const headerConfig: HeaderConfig = {
   brand: {
     title: "Aviation Weather",
-    icon: "/globe.svg"
+    icon: "/logos/aw-logo-2.png"
   },
   navigationLinks: [
-    { href: "/briefing", label: "Weather Briefing" },
-    { href: "/map", label: "Weather Map" },
     { href: "/plan", label: "Flight Plan" },
   ]
 }

@@ -34,7 +34,7 @@ const mapLegendData: LegendItem[] = [
 const mapUrls = {
   radar: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=PRECIP_WATER",
   satellite: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=SURFACE_ANALYSIS",
-  sigmet: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=CURRENT_FL050_WINDS_TEMP",
+  sigmet: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=SEVERE_WX_DAY1&seed=1809644814",
   conditions: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=MEAN_RH"
 };
 
