@@ -12,6 +12,7 @@ import { Search, SlidersHorizontal, Map as MapIcon, RefreshCw } from "lucide-rea
 import { GradientText } from "@/components/ui/gradient-text"
 import { PageHeader } from "@/components/ui/page-header"
 import Link from "next/link"
+import Image from "next/image"
 
 
 interface LegendItem {
@@ -34,17 +35,17 @@ const mapLegendData: LegendItem[] = [
 const mapUrls = {
   surface: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=SURFACE_ANALYSIS&seed=762675937",
   winds: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=CURRENT_FL050_WINDS_TEMP&seed=-1429119848",
-  sigmet: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=SEVERE_WX_DAY1&seed=1809644814",
+  sigmet: "https://aviationweather.gov/data/products/sigmet/sigmet_all.gif",
   humidity: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=MEAN_RH&seed=152226039"
 };
 
 export default function MapPage() {
   const [currentMapPlan, setCurrentMapPlan] = React.useState<Waypoint[] | null>(null);
-  const [cacheBuster, setCacheBuster] = React.useState<string>(`seed=${Date.now()}`);
+  const [cacheBuster, setCacheBuster] = React.useState<string>(`timestamp=${Date.now()}`);
   const [selectedTab, setSelectedTab] = React.useState<keyof typeof mapUrls>('sigmet');
 
   const refreshMap = () => {
-    setCacheBuster(`seed=${Date.now()}`);
+    setCacheBuster(`timestamp=${Date.now()}`);
   };
 
   const handleMapPlanGenerated = (planString: string) => {
@@ -80,6 +81,16 @@ export default function MapPage() {
       console.error("Error parsing flight plan string:", error);
       setCurrentMapPlan(null);
     }
+  };
+
+  // Get current image URL with cache buster
+  const getCurrentMapUrl = () => {
+    const baseUrl = mapUrls[selectedTab];
+    // Only add cache buster for URLs that don't end with .gif
+    if (!baseUrl.endsWith('.gif')) {
+      return `${baseUrl}&${cacheBuster}`;
+    }
+    return `${baseUrl}?${cacheBuster}`;
   };
 
   return (
@@ -157,12 +168,13 @@ export default function MapPage() {
             
             {/* Map Display */}
             <div className="flex-grow bg-primary/5 rounded-lg border relative overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* Regular img tag instead of next/image for better compatibility with external GIFs */}
               <img
-                src={`${mapUrls[selectedTab]}&${cacheBuster}`}
+                src={getCurrentMapUrl()}
                 alt={`Weather Map - ${selectedTab}`}
                 className="object-contain w-full h-full absolute inset-0"
                 loading="lazy"
+                key={cacheBuster} // Force re-render on refresh
               />
               {currentMapPlan && (
                 <div className="absolute bottom-0 left-0 right-0 bg-background/80 p-2 text-xs text-center border-t">

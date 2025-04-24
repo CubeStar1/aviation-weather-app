@@ -39,6 +39,13 @@ const features = [
     alt: "AI weather summary",
   },
   {
+    title: "Voice Assistant",
+    description: "Get real-time weather briefings and flight recommendations using our voice assistant.",
+    image: "/images/light/aw-voice-light.png",
+    darkImage: "/images/dark/aw-voice-dark.png",
+    alt: "Voice assistant interface",
+  },
+  {
     title: "Interactive Weather Map",
     description: "Visualize your flight path with weather overlays, showing precipitation, clouds, winds, and VFR/IFR conditions along your route.",
     image: "/images/light/aw-map-light.png",

@@ -26,6 +26,10 @@ const navItems = [
     href: "/briefing",
   },
   {
+    label: "Assistant",
+    href: "/voice-assistant",
+  },
+  {
     label: "Settings",
     href: "/settings",
   },

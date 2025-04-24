@@ -107,8 +107,10 @@ function BriefingContent() {
   if (!briefingData) return null;
   
   return (
-    <div className="container mx-auto px-4 py-2 space-y-6">
-      <PageHeader title="Weather Briefing" />
+    <div className="container mx-auto px-4 py-2 space-y-2">
+      <div className="pt-2">
+        <PageHeader title="Weather Briefing" />
+      </div>
       
       <FlightRouteHeader briefing={briefingData} /> 
       

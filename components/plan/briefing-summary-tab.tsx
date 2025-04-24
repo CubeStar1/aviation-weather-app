@@ -20,7 +20,7 @@ export function BriefingSummaryTab({ briefing }: BriefingSummaryTabProps) {
 
   const flightConditions = `Overall conditions for ${briefing.flight_plan}. Check details.`; // Placeholder
   const sigmetAirmetSummary = briefing.airsigmets.map(s => s.simplified_summary || s.hazard || 'Unknown SIGMET/AIRMET');
-  const pirepSummary = Object.values(briefing.pireps).flatMap(p => p.reports.map(r => r.raw || 'PIREP details missing')); // Example extraction
+  const pirepSummary = Object.values(briefing.pireps).flatMap(p => p.status || 'PIREP details missing'); // Example extraction
   const legIntersections = briefing.legs.filter(leg => leg.intersecting_sigmets.length > 0).map(leg => (
       `Leg ${leg.from}-${leg.to} intersects ${leg.intersecting_sigmets.length} SIGMET(s).`
   ));

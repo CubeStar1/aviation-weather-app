@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { ExternalLink, List, Map, FileText, Loader2, AlertCircle } from "lucide-react"
+import { ExternalLink, List, Map, FileText, Loader2, AlertCircle, Plane, Navigation, ArrowRight } from "lucide-react"
 
 import { fetchFlightBriefing, BriefingApiResponse } from "@/lib/fetchers/briefing"
 
@@ -44,8 +44,20 @@ export function RoutePreview({ plan: planString }: RoutePreviewProps) {
 
   if (!planString) {
     return (
-      <div className="h-80 flex items-center justify-center text-center text-muted-foreground text-sm border border-dashed rounded-lg bg-muted/30">
-        <p>Enter a flight plan (at least Departure and Arrival)<br/>and click "Update Preview" to see route details.</p>
+      <div className="h-80 flex flex-col items-center justify-center text-center px-4 py-6 bg-gradient-to-b from-background to-muted/30 border border-dashed rounded-lg">
+        <Plane className="h-10 w-10 text-primary/30 mb-3 rotate-45" />
+        <h3 className="text-base font-semibold text-primary">Ready for Takeoff</h3>
+        <p className="text-sm text-muted-foreground mt-2 max-w-sm">
+          Complete your flight plan with at least a departure and arrival airport, then click "Update Preview" to see your route details.
+        </p>
+        
+        <div className="flex items-center justify-center mt-6 space-x-2 text-muted-foreground/50">
+          <Navigation className="h-4 w-4" />
+          <ArrowRight className="h-3 w-3" />
+          <Map className="h-4 w-4" />
+          <ArrowRight className="h-3 w-3" />
+          <FileText className="h-4 w-4" />
+        </div>
       </div>
     );
   }
@@ -122,5 +134,6 @@ export function RoutePreview({ plan: planString }: RoutePreviewProps) {
         </Button>
       </div>
     </Tabs>
+    
   )
 }
