@@ -32,16 +32,16 @@ const mapLegendData: LegendItem[] = [
 ];
 
 const mapUrls = {
-  radar: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=PRECIP_WATER",
-  satellite: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=SURFACE_ANALYSIS",
+  surface: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=SURFACE_ANALYSIS&seed=762675937",
+  winds: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=CURRENT_FL050_WINDS_TEMP&seed=-1429119848",
   sigmet: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=SEVERE_WX_DAY1&seed=1809644814",
-  conditions: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=MEAN_RH"
+  humidity: "https://www.1800wxbrief.com/Website/weather/graphic/image?product=MEAN_RH&seed=152226039"
 };
 
 export default function MapPage() {
   const [currentMapPlan, setCurrentMapPlan] = React.useState<Waypoint[] | null>(null);
   const [cacheBuster, setCacheBuster] = React.useState<string>(`seed=${Date.now()}`);
-  const [selectedTab, setSelectedTab] = React.useState<keyof typeof mapUrls>('radar');
+  const [selectedTab, setSelectedTab] = React.useState<keyof typeof mapUrls>('sigmet');
 
   const refreshMap = () => {
     setCacheBuster(`seed=${Date.now()}`);
@@ -136,16 +136,16 @@ export default function MapPage() {
                 onValueChange={(value) => setSelectedTab(value as keyof typeof mapUrls)}
               >
                 <TabsList className="grid grid-cols-4 w-full md:w-auto">
-                  <TabsTrigger value="radar" className="text-xs px-3 py-1.5 h-auto">
+                  <TabsTrigger value="sigmet" className="text-xs px-3 py-1.5 h-auto">
                     SIGMET
                   </TabsTrigger>
-                  <TabsTrigger value="satellite" className="text-xs px-3 py-1.5 h-auto">
+                  <TabsTrigger value="surface" className="text-xs px-3 py-1.5 h-auto">
                     Surface Analysis
                   </TabsTrigger>
-                  <TabsTrigger value="sigmet" className="text-xs px-3 py-1.5 h-auto">
+                  <TabsTrigger value="winds" className="text-xs px-3 py-1.5 h-auto">
                     Winds
                   </TabsTrigger>
-                  <TabsTrigger value="conditions" className="text-xs px-3 py-1.5 h-auto">
+                  <TabsTrigger value="humidity" className="text-xs px-3 py-1.5 h-auto">
                     Humidity
                   </TabsTrigger>
                 </TabsList>
@@ -156,14 +156,13 @@ export default function MapPage() {
             </div>
             
             {/* Map Display */}
-            <div className="flex-grow bg-muted rounded-lg border relative overflow-hidden">
+            <div className="flex-grow bg-primary/5 rounded-lg border relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`${mapUrls[selectedTab]}&${cacheBuster}`}
                 alt={`Weather Map - ${selectedTab}`}
                 className="object-contain w-full h-full absolute inset-0"
                 loading="lazy"
-                style={{ objectFit: 'cover' }}
               />
               {currentMapPlan && (
                 <div className="absolute bottom-0 left-0 right-0 bg-background/80 p-2 text-xs text-center border-t">
