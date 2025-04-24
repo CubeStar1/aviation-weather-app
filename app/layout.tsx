@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/global/theme-provider"
 import QueryProvider from "@/components/global/query-provider";
 import { Toaster } from "@/components/ui/toaster"
 import Script from 'next/script';
+import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -38,6 +39,8 @@ export default function RootLayout({
             })(window, document, "clarity", "script", "r8zk4lkg97");
           `}
         </Script> 
+        <Analytics/>
+        
             </ThemeProvider>
           </QueryProvider>
         <Toaster />
