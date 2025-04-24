@@ -9,10 +9,10 @@ import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata = {
-  title: 'Template',
-  description: 'NextJS Template',
-};
+export const metadata: Metadata = {
+  title: "Aviation Weather",
+  description: "Real-time weather data for pilots",
+}
 
 export default function RootLayout({
   children,
