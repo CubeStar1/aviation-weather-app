@@ -22,5 +22,7 @@ export const headerConfig: HeaderConfig = {
   },
   navigationLinks: [
     { href: "/plan", label: "Flight Plan" },
+    { href: "/map", label: "Weather Map" },
+    { href: "/briefing", label: "Weather Briefing" },
   ]
 }
