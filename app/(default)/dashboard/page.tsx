@@ -25,8 +25,8 @@ import { fetchFlightBriefing, BriefingApiResponse } from "@/lib/fetchers/briefin
 
 import { AlertCircle } from "lucide-react"
 
-const DEFAULT_CITY = "London"
-const DEFAULT_ICAO = "EGLL"
+const DEFAULT_CITY = "Francisco"
+const DEFAULT_ICAO = "KLAX"
 
 export default function DashboardPage() {
   const [cityInput, setCityInput] = useState("")
