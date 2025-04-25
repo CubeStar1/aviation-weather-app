@@ -4,7 +4,8 @@ import {
   } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { 
-    MessageSquare, Clock, MapPin, Plane, Cloud, Snowflake, Waves, User, Eye, FileText, Info
+    MessageSquare, Clock, MapPin, Plane, Cloud, Snowflake, Waves, User, Eye, FileText, Info,
+    Thermometer, AlertTriangle, Building
 } from "lucide-react"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -33,7 +34,9 @@ const PirepReport = ({ report }: { report: PirepReportData }) => {
 
    const location = report.location?.repr || "Unknown";
    const time = report.time?.repr ? `${report.time.repr}Z` : "N/A";
-   const altitude = report.altitude?.value ? `FL${String(report.altitude.value).padStart(3, '0')}` : "N/A";
+   const altitude = typeof report.altitude === 'object' && report.altitude?.value 
+                   ? `FL${String(report.altitude.value).padStart(3, '0')}` 
+                   : report.altitude || "N/A";
    const aircraft = typeof report.aircraft === 'object' && report.aircraft?.code 
                     ? `${report.aircraft.code} (${report.aircraft.type || 'Unknown Type'})` 
                     : report.aircraft || "N/A";
@@ -43,11 +46,16 @@ const PirepReport = ({ report }: { report: PirepReportData }) => {
    const visibility = report.flight_visibility?.repr ? `${report.flight_visibility.repr} SM` : "N/A";
    const remarks = report.remarks || "N/A";
    const reportType = report.type || "PIREP";
+   const station = report.station || "N/A";
+   const temperature = report.temperature?.value ? `${report.temperature.value}°C` : "N/A";
+   const wxCodes = report.wx_codes?.length > 0 ? report.wx_codes.join(', ') : "N/A";
+   const other = report.other?.length > 0 ? report.other.join(', ') : "N/A";
 
    return (
       <div className="space-y-2">
          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
             <PirepInfoItem icon={Clock} label="Time" value={time} />
+            <PirepInfoItem icon={Building} label="Station" value={station} />
             <PirepInfoItem icon={MapPin} label="Location" value={location} />
             <PirepInfoItem icon={Plane} label="Altitude" value={altitude} />
             <PirepInfoItem icon={User} label="Aircraft" value={aircraft} />
@@ -55,7 +63,10 @@ const PirepReport = ({ report }: { report: PirepReportData }) => {
             <PirepInfoItem icon={Eye} label="Visibility" value={visibility} />
             <PirepInfoItem icon={Snowflake} label="Icing" value={icing} />
             <PirepInfoItem icon={Waves} label="Turbulence" value={turbulence} />
-             <PirepInfoItem icon={FileText} label="Type" value={reportType} />
+            <PirepInfoItem icon={Thermometer} label="Temperature" value={temperature} />
+            <PirepInfoItem icon={AlertTriangle} label="Wx Codes" value={wxCodes} />
+            <PirepInfoItem icon={FileText} label="Type" value={reportType} />
+            <PirepInfoItem icon={Info} label="Other" value={other} />
             {remarks !== 'N/A' && (
                 <div className="sm:col-span-2">
                     <PirepInfoItem icon={MessageSquare} label="Remarks" value={remarks} />

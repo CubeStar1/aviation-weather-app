@@ -15,7 +15,8 @@ import { SummaryTab } from "@/components/briefing/summary-tab"
 import { MetarTafTab } from "@/components/briefing/metar-taf-tab"
 import { SigmetAirmetTab } from "@/components/briefing/sigmet-airmet-tab"
 import { PirepTab } from "@/components/briefing/pirep-tab"
-import { AiSummaryTab } from "@/components/briefing/ai-summary-tab" 
+import { AiSummaryTab } from "@/components/briefing/ai-summary-tab"
+import { MapTab } from "@/components/briefing/map-tab"
 import { PageHeader } from "@/components/ui/page-header"
 
 function LoadingState() {
@@ -117,9 +118,10 @@ function BriefingContent() {
       <Card className="shadow-md border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden">
         <CardContent className="p-4">
           <Tabs defaultValue="summary" className="relative">
-            <TabsList className="grid grid-cols-5 gap-2 mb-4 border border-primary/20">
+            <TabsList className="grid grid-cols-6 gap-2 mb-4 border border-primary/20">
               <TabsTrigger value="summary" className="text-xs px-3 py-1.5 h-auto">Summary</TabsTrigger>
               <TabsTrigger value="ai-summary" className="text-xs px-3 py-1.5 h-auto">AI Analysis</TabsTrigger>
+              <TabsTrigger value="map" className="text-xs px-3 py-1.5 h-auto">Map</TabsTrigger>
               <TabsTrigger value="metar-taf" className="text-xs px-3 py-1.5 h-auto">METAR</TabsTrigger>
               <TabsTrigger value="sigmet" className="text-xs px-3 py-1.5 h-auto">SIGMET/AIRMET</TabsTrigger>
               <TabsTrigger value="pirep" className="text-xs px-3 py-1.5 h-auto">PIREP</TabsTrigger>
@@ -132,6 +134,10 @@ function BriefingContent() {
 
               <TabsContent value="ai-summary" className="mt-0">
                 <AiSummaryTab briefing={briefingData} />
+              </TabsContent>
+
+              <TabsContent value="map" className="mt-0">
+                <MapTab briefing={briefingData} />
               </TabsContent>
               
               <TabsContent value="metar-taf" className="mt-0">
