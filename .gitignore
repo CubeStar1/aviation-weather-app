@@ -51,6 +51,5 @@ __pycache__/
 *.pyz
 *.pywz
 
-/app/(default)/voice-assistant
 /api
 
